@@ -1,0 +1,4 @@
+---
+# tasks file for hoplacloud.drupal
+- name: No RedHat tasks
+  fail:
