@@ -12,6 +12,143 @@
     state: restarted
     name: ssh
 
+- name: Init vars
+  set_fact:
+    drupal_password: "{{ lookup('password', '/dev/null length=8 chars=ascii_letters,digits,hexdigits') }}"
+    db_password: "{{ lookup('password', '/dev/null length=15 chars=ascii_letters,digits,hexdigits') }}"
+    vhost_user: "{{ vhost_url | regex_replace('\\.') | truncate(13, True, '') }}"
+    vhost_password: "{{ lookup('password', '/dev/null length=12 chars=ascii_letters,digits,hexdigits') }}"
+    vhost_domain: "{{ vhost_url | regex_replace('([^\\.]*)\\.(.+)$', '\\2') }}"
+    vhost_sdomain: "{{ vhost_url | regex_replace('([^\\.]*)\\.(.+)$', '\\1') }}"
+
+- name: Set vhost_path
+  set_fact:
+    vhost_path: "/var/www/custs/{{ vhost_domain }}/{{ vhost_sdomain }}"
+    vhost_conf_file: "{{ vhost_domain }}_{{ vhost_sdomain }}"
+
+- name: Creating drupal directory
+  file:
+    path: "{{ vhost_path }}"
+    state: directory
+
+- name: Add vhost user
+  user:
+    name: "{{ vhost_user }}"
+    comment: "User for {{ vhost_url }}"
+    password: "{{ vhost_password | password_hash('sha512') }}"
+    home: "{{ vhost_path }}"
+
+- name: Create mysql database
+  mysql_db:
+    name: "{{ vhost_user }}"
+    state: present
+
+- name: Create mysql user
+  mysql_user:
+    state: present
+    name: "{{ vhost_user }}"
+    password: "{{ db_password }}"
+    login_host: localhost
+    priv: '{{ vhost_user }}.*:ALL,GRANT'
+
+- name: Download drupal archive
+  uri:
+    url: "https://www.drupal.org/download-latest/tar.gz"
+    dest: "{{ vhost_path }}/latest-drupal.tar.gz"
+    mode: "755"
+    follow_redirects: "all"
+
+- name: Creating drupal directory temp
+  file:
+    path: "{{ vhost_path }}/latest-drupal"
+    state: directory
+
+- name: Extract drupal archive to website directory
+  unarchive:
+    src: "{{ vhost_path }}/latest-drupal.tar.gz"
+    dest: "{{ vhost_path }}/latest-drupal"
+    remote_src: yes
+
+- name: Copy drupal files with owner and permissions
+  copy:
+    src: "{{ vhost_path }}/latest-drupal/*/"
+    dest: "{{ vhost_path }}"
+    owner: "{{ vhost_user }}"
+    group: "{{ vhost_user }}"
+
+- name: Copy drupal config
+  copy:
+    src: "{{ vhost_path }}/sites/default/default.settings.php"
+    dest: "{{ vhost_path }}/sites/default/settings.php"
+    mode: "0666"
+
+- name: Copy vhost config
+  copy:
+    src: "files/vhost.conf"
+    dest: "/etc/apache2/sites-available/{{ vhost_conf_file }}.conf"
+
+- name: Update Apache vhost [1/5]
+  replace:
+    path: "/etc/apache2/sites-available/{{ vhost_conf_file }}.conf"
+    regexp: 'vhost_path'
+    replace: '{{ vhost_path }}'
+
+- name: Update Apache vhost [2/5]
+  replace:
+    path: "/etc/apache2/sites-available/{{ vhost_conf_file }}.conf"
+    regexp: 'vhost_url'
+    replace: '{{ vhost_url }}'
+
+- name: Update Apache vhost [3/5]
+  replace:
+    path: "/etc/apache2/sites-available/{{ vhost_conf_file }}.conf"
+    regexp: 'php_version'
+    replace: '{{ php_version }}'
+
+- name: Update Apache vhost [4/5]
+  replace:
+    path: "/etc/apache2/sites-available/{{ vhost_conf_file }}.conf"
+    regexp: 'user_email'
+    replace: '{{ user_email }}'
+
+- name: Update Apache vhost [5/5]
+  replace:
+    path: "/etc/apache2/sites-available/{{ vhost_conf_file }}.conf"
+    regexp: 'vhost_conf_file'
+    replace: '{{ vhost_conf_file }}'
+
+- name: Enable wordpress vhost
+  command: "a2ensite {{ vhost_conf_file }}.conf"
+
+- name: Copy FPM config
+  copy:
+    src: "files/fpm.conf"
+    dest: "/etc/php/{{ php_version }}/fpm/pool.d/{{ vhost_conf_file }}.conf"
+
+- name: Update FPM vhost [1/4]
+  replace:
+    path: "/etc/php/{{ php_version }}/fpm/pool.d/{{ vhost_conf_file }}.conf"
+    regexp: 'vhost_user'
+    replace: '{{ vhost_user }}'
+
+- name: Update FPM vhost [2/4]
+  replace:
+    path: "/etc/php/{{ php_version }}/fpm/pool.d/{{ vhost_conf_file }}.conf"
+    regexp: 'vhost_url'
+    replace: '{{ vhost_url }}'
+
+- name: Update FPM vhost [3/4]
+  replace:
+    path: "/etc/php/{{ php_version }}/fpm/pool.d/{{ vhost_conf_file }}.conf"
+    regexp: 'php_version'
+    replace: '{{ php_version }}'
+
+- name: Update FPM vhost [4/4]
+  replace:
+    path: "/etc/php/{{ php_version }}/fpm/pool.d/{{ vhost_conf_file }}.conf"
+    regexp: 'vhost_conf_file'
+    replace: '{{ vhost_conf_file }}'
+
 - name: restart apache
   service: name=apache2 state=restarted
 
