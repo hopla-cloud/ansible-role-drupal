@@ -23,4 +23,3 @@ dependencies:
     - hoplacloud.proftpd
     - hoplacloud.postfix
     - geerlingguy.mysql
-    - geerlingguy.drupal
