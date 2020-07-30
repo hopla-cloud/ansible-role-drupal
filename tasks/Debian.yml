@@ -23,7 +23,7 @@
 
 - name: Set vhost_path
   set_fact:
-    vhost_path: "/var/www/custs/{{ vhost_domain }}/{{ vhost_sdomain }}"
+    vhost_path: "/var/www/sites/{{ vhost_domain }}/{{ vhost_sdomain }}"
     vhost_conf_file: "{{ vhost_domain }}_{{ vhost_sdomain }}"
 
 - name: Creating drupal directory
@@ -176,7 +176,7 @@
 - name: Log variables to file
   template:
     src: logs.j2
-    dest: /root/Oneclick-wp-{{ ansible_date_time.date }}-{{ ansible_date_time.time }}.txt
+    dest: /root/Oneclick-drupal-{{ ansible_date_time.date }}-{{ ansible_date_time.time }}.txt
     owner: root
     group: root
 
