@@ -75,6 +75,7 @@
     dest: "{{ vhost_path }}"
     owner: "{{ vhost_user }}"
     group: "{{ vhost_user }}"
+    remote_src: yes
 
 - name: Copy drupal config
   copy:
