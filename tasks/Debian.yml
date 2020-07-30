@@ -164,6 +164,12 @@
     regexp: 'vhost_conf_file'
     replace: '{{ vhost_conf_file }}'
 
+- name: Install drush
+  composer:
+    command: require
+    arguments: drush/drush
+    global_command: yes
+
 - name: restart apache
   service: name=apache2 state=restarted
 
