@@ -75,7 +75,7 @@
 
 - name: Copy drupal files with owner and permissions
   copy:
-    src: "{{ vhost_path }}/latest-drupal/{{drupal_version.stdout_lines}}/"
+    src: "{{ vhost_path }}/latest-drupal/{{drupal_version.stdout}}/"
     dest: "{{ vhost_path }}"
     owner: "{{ vhost_user }}"
     group: "{{ vhost_user }}"
