@@ -69,13 +69,27 @@
     dest: "{{ vhost_path }}/latest-drupal"
     remote_src: yes
 
+- name: Get drupal directory name
+  command: "ls {{vhost_path}}"
+  register: drupal_version
+
 - name: Copy drupal files with owner and permissions
   copy:
-    src: "{{ vhost_path }}/latest-drupal/*/"
+    src: "{{ vhost_path }}/latest-drupal/{{drupal_version.stdout_lines}}/"
     dest: "{{ vhost_path }}"
     owner: "{{ vhost_user }}"
     group: "{{ vhost_user }}"
     remote_src: yes
+
+- name: Remove drupal download
+  file:
+    path: "{{ vhost_path }}/latest-drupal"
+    state: absent
+
+- name: Remove drupal archive
+  file:
+    path: "{{ vhost_path }}/latest-drupal.tar.gz"
+    state: absent
 
 - name: Copy drupal config
   copy:
